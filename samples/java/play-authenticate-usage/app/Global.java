@@ -1,5 +1,7 @@
 import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 
+import akka.util.Duration;
 import models.SecurityRole;
 
 import com.feth.play.module.pa.PlayAuthenticate;
@@ -11,11 +13,31 @@ import controllers.routes;
 
 import play.Application;
 import play.GlobalSettings;
+import play.libs.Akka;
 import play.mvc.Call;
+import security.PaSession;
 
 public class Global extends GlobalSettings {
 
 	public void onStart(Application app) {
+
+        if (PaSession.DB_STORAGE && PaSession.CLEAR_ON_START) {
+            PaSession.clearTerminatedSessions();
+        }
+
+        if (PaSession.DB_STORAGE && PaSession.CLEAR_FREQUENCY > 0) {
+            Akka.system().scheduler().schedule(
+                    Duration.create(0, TimeUnit.MILLISECONDS),
+                    Duration.create(PaSession.CLEAR_FREQUENCY, TimeUnit.SECONDS),
+                    new Runnable() {
+                        @Override
+                        public void run() {
+                            PaSession.clearTerminatedSessions();
+                        }
+                    }
+            );
+        }
+
 		PlayAuthenticate.setResolver(new Resolver() {
 
 			@Override
@@ -40,8 +62,7 @@ public class Global extends GlobalSettings {
 			public Call auth(final String provider) {
 				// You can provide your own authentication implementation,
 				// however the default should be sufficient for most cases
-				return com.feth.play.module.pa.controllers.routes.Authenticate
-						.authenticate(provider);
+				return routes.Application.authenticate(provider);
 			}
 
 			@Override

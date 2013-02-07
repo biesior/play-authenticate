@@ -69,6 +69,15 @@ public class Application extends Controller {
         }
 	}
 
+    public static Result authenticate(String provider){
+        Result handled = com.feth.play.module.pa.controllers.Authenticate.authenticate(provider);
+
+        PaSession paSession = new PaSession(session(), request());
+        paSession.saveToCache(session());
+
+        return handled;
+    }
+
     public static Result logout() {
         PaSession.delete(session());
         return com.feth.play.module.pa.controllers.Authenticate.logout();
